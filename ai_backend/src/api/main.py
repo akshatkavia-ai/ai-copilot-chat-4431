@@ -66,7 +66,7 @@ class ChatResponse(BaseModel):
 @app.get("/", tags=["Health"])
 def health_check():
     """Health check endpoint to ensure the server is running."""
-    return {"message": "Healthy"}
+    return {"status": "ok"}
 
 
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
