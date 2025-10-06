@@ -20,7 +20,8 @@ app = FastAPI(
 # In production, restrict to actual frontend domain
 origins = [
     "http://localhost:3000",
-    "https://vscode-internal-41620-beta.beta01.cloud.kavia.ai:3000",  # Frontend preview origin
+    "https://vscode-internal-41620-beta.beta01.cloud.kavia.ai:3000",  # Frontend preview origin (port 3000)
+    "https://vscode-internal-41620-beta.beta01.cloud.kavia.ai:4000",  # Frontend preview origin (port 4000)
 ]
 
 app.add_middleware(
