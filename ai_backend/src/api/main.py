@@ -16,9 +16,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Set up CORS
-# In a production environment, you should restrict this to your frontend's actual domain.
-# The frontend preview origin is obtained from the work item context.
+# Set up CORS - relaxed for localhost development
+# In production, restrict to actual frontend domain
 origins = [
     "http://localhost:3000",
     "https://vscode-internal-41620-beta.beta01.cloud.kavia.ai:3000",  # Frontend preview origin
@@ -27,9 +26,10 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -80,7 +80,8 @@ async def chat(request: ChatRequest):
         raise HTTPException(
             status_code=500,
             detail={
-                "error": "GEMINI_API_KEY is missing. Set it in backend .env or environment."
+                "error": "GEMINI_API_KEY is missing.",
+                "hint": "Set GEMINI_API_KEY in backend .env or environment."
             },
         )
 
@@ -89,7 +90,11 @@ async def chat(request: ChatRequest):
     except Exception as e:
         print(f"An error occurred during genai.configure: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Error configuring Gemini API: {str(e)}"
+            status_code=500, 
+            detail={
+                "error": f"Error configuring Gemini API: {str(e)}",
+                "hint": "Check API key validity."
+            }
         )
 
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
@@ -108,7 +113,11 @@ async def chat(request: ChatRequest):
         # Ensure the response has content before accessing it
         if not response.parts:
             raise HTTPException(
-                status_code=500, detail="Received an empty response from the AI model."
+                status_code=500, 
+                detail={
+                    "error": "Received an empty response from the AI model.",
+                    "hint": "The model may have blocked the response or encountered an issue."
+                }
             )
 
         reply_content = response.text
@@ -123,11 +132,17 @@ async def chat(request: ChatRequest):
                 else None
             ),
         )
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is
+        raise
     except Exception as e:
         # Log the error for debugging purposes
         print(f"An error occurred while calling the Gemini API: {e}")
-        # Return a generic error message to the user
+        # Return structured error JSON
         raise HTTPException(
             status_code=500,
-            detail=f"An error occurred while processing your request: {str(e)}",
+            detail={
+                "error": f"An error occurred while processing your request: {str(e)}",
+                "hint": "Check backend logs and Gemini API status."
+            },
         )
